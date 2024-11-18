@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template, send_file,request, redirect, url_for, render_template, flash
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin import Admin, BaseView, expose
 from flask_admin import BaseView, expose
@@ -10,7 +11,7 @@ from datetime import datetime
 import os
 from collections import defaultdict
 import json
-import atexit
+import atexit, pytz
 
 
 from datetime import datetime
@@ -24,11 +25,13 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 3600,
     'pool_size': 10,
-    'pool_timeout': 30,
+    'pool_timeout': 60,
 }
 
 db = SQLAlchemy(app)
-
+migrate = Migrate(app, db)
+# Налаштування локального часу
+LOCAL_TIMEZONE = pytz.timezone("Europe/Kyiv")  # Встановіть ваш часовий пояс
 # Файл для збереження останніх даних
 LATEST_DATA_FILE = "latest_data.json"
 
@@ -64,7 +67,7 @@ class SensorData(db.Model):
     workshop = db.Column(db.Integer)
     incubator = db.Column(db.Integer)
     camera = db.Column(db.Integer)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(LOCAL_TIMEZONE))
 
 # Маршрути
 @app.route('/')
@@ -154,7 +157,8 @@ def send_data():
                     humidity=humidity,
                     workshop=workshop,
                     incubator=incubator,
-                    camera=camera
+                    camera=camera,
+                    timestamp=datetime.now(LOCAL_TIMEZONE)  # Локальний час
                 )
                 db.session.add(new_data)
 
