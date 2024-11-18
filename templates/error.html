@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error</title>
+</head>
+<body>
+    {% extends "base.html" %}
+
+{% block title %}Помилка{% endblock %}
+
+{% block content %}
+<h1>Помилка</h1>
+<p class="alert alert-danger">{{ message }}</p>
+<a href="/" class="btn btn-secondary mt-3">Назад на головну сторінку</a>
+{% endblock %}
+</body>
+</html>

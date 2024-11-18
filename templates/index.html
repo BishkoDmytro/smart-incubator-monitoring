@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Page</title>
+</head>
+<body>
+    {% extends "base.html" %}
+
+{% block title %}Головна сторінка{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Ласкаво просимо до системи моніторингу</h1>
+<p>Оберіть цех:</p>
+<ul class="list-group">
+    <li class="list-group-item"><a href="/workshop/1">Цех 1 (Заготовчий цех)</a></li>
+    <li class="list-group-item"><a href="/workshop/2">Цех 2 (Вивідний цех)</a></li>
+</ul>
+{% endblock %}
+</body>
+</html>

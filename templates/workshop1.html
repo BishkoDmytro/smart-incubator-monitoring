@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workshop 1</title>
+</head>
+<body>
+{% extends "base.html" %}
+
+{% block title %}Цех 1{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Цех 1 (Заготовчий цех)</h1>
+<p>Оберіть інкубатор:</p>
+<ul class="list-group">
+    <li class="list-group-item"><a href="/incubator/1/1">Інкубатор 1</a></li>
+    <li class="list-group-item"><a href="/incubator/1/2">Інкубатор 2</a></li>
+    <li class="list-group-item"><a href="/incubator/1/3">Інкубатор 3</a></li>
+    <li class="list-group-item"><a href="/incubator/1/4">Інкубатор 4</a></li>
+</ul>
+<a href="/" class="btn btn-secondary mt-3">Назад на головну</a>
+{% endblock %}
+</body>
+</html>

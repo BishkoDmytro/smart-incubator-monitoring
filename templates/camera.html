@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera {{ camera_id }}</title>
+</head>
+<body>
+  {% extends "base.html" %}
+
+{% block title %}Камера {{ camera_id }}{% endblock %}
+
+{% block content %}
+<h1>Камера {{ camera_id }}</h1>
+<p>Поточна температура: {{ temperature }}°C</p>
+<p>Поточна вологість: {{ humidity }}%</p>
+
+<h2>Виберіть дату</h2>
+<form action="/camera/{{ workshop_id }}/{{ incubator_id }}/{{ camera_id }}/data" method="post">
+    <div class="mb-3">
+        <label for="date" class="form-label">Дата (YYYY-MM-DD):</label>
+        <input type="date" id="date" name="date" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Підтвердити</button>
+</form>
+<a href="/incubator/{{ workshop_id }}/{{ incubator_id }}" class="btn btn-secondary mt-3">Назад до інкубатора</a>
+{% endblock %}
+</body>
+</html>

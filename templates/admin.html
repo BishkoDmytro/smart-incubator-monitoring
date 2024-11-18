@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Адмін-панель</title>
+</head>
+<body>
+   {% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Керування даними</h1>
+<form method="post" class="row g-3">
+    {{ form.hidden_tag() }}
+    <div class="col-md-4">
+        {{ form.start_date.label(class="form-label") }}
+        {{ form.start_date(class="form-control") }}
+    </div>
+    <div class="col-md-4">
+        {{ form.end_date.label(class="form-label") }}
+        {{ form.end_date(class="form-control") }}
+    </div>
+    <div class="col-md-4">
+        {{ form.incubator.label(class="form-label") }}
+        {{ form.incubator(class="form-control") }}
+    </div>
+    <div class="col-md-4">
+        {{ form.camera.label(class="form-label") }}
+        {{ form.camera(class="form-control") }}
+    </div>
+    <div class="col-12">
+        <button type="submit" name="delete" class="btn btn-danger">Видалити</button>
+        <button type="submit" name="export" class="btn btn-primary">Експортувати в PDF</button>
+    </div>
+</form>
+{% if error %}
+    <div class="alert alert-danger mt-4">{{ error }}</div>
+{% endif %}
+{% if success %}
+    <div class="alert alert-success mt-4">{{ success|safe }}</div>
+{% endif %}
+{% endblock %}
+
+</body>
+</html>

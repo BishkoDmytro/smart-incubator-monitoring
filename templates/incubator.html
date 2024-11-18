@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incubator {{ incubator_id }}</title>
+</head>
+<body>
+{% extends "base.html" %}
+
+{% block title %}Інкубатор {{ incubator_id }}{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Інкубатор {{ incubator_id }}</h1>
+<p>Оберіть камеру:</p>
+<ul class="list-group">
+    <li class="list-group-item"><a href="/camera/{{ workshop_id }}/{{ incubator_id }}/1">Камера 1</a></li>
+    <li class="list-group-item"><a href="/camera/{{ workshop_id }}/{{ incubator_id }}/2">Камера 2</a></li>
+    <li class="list-group-item"><a href="/camera/{{ workshop_id }}/{{ incubator_id }}/3">Камера 3</a></li>
+</ul>
+<a href="/workshop/{{ workshop_id }}" class="btn btn-secondary mt-3">Назад до цеху</a>
+{% endblock %}
+</body>
+</html>
