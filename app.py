@@ -42,7 +42,7 @@ class SensorData(db.Model):
     workshop = db.Column(db.Integer)
     incubator = db.Column(db.Integer)
     camera = db.Column(db.Integer)
-    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(LOCAL_TIMEZONE))
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(LOCAL_TIMEZONE).astimezone(pytz.UTC))
 
 
 def load_latest_data():
