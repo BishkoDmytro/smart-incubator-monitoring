@@ -18,8 +18,10 @@ from datetime import datetime
 app = Flask(__name__)
 
 # Конфігурація
-app.config['SECRET_KEY'] = 'your_secret_key_here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    'DATABASE_URL',
+    'postgresql://bishko:Yvo4uLkTb6VAAej88Y1BxRgTypYKw0UF@dpg-csua2ut2ng1s73cf7q4g-a/data_mkwp'
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
