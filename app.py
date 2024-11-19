@@ -128,11 +128,13 @@ def get_camera_data(workshop, incubator, camera):
 @app.route('/send_data', methods=['POST'])
 def send_data():
     try:
+        # Отримуємо дані від користувача
         sensor_data = request.json
         if not isinstance(sensor_data, list):
             return "Error: Expected a list of sensor data.", 400
 
         for entry in sensor_data:
+            # Отримуємо значення з кожного запису
             workshop = entry.get("workshop")
             incubator = entry.get("incubator")
             camera = entry.get("camera")
@@ -140,18 +142,19 @@ def send_data():
             humidity = entry.get("humidity")
             save_to_database = entry.get("save_to_database", False)
 
+            # Перевірка на відсутність обов'язкових полів
             if None in (workshop, incubator, camera, temperature, humidity):
                 return "Error: Missing required fields.", 400
 
-            # Зберігаємо останні тимчасові дані
+            # Оновлюємо останні тимчасові дані
             key = f"{workshop}_{incubator}_{camera}"
             latest_data[key] = {
                 "temperature": temperature,
                 "humidity": humidity,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat()  # Використовуємо UTC для збереження
             }
 
-            # Зберігаємо в БД, якщо потрібно
+            # Якщо потрібно, зберігаємо в БД
             if save_to_database:
                 new_data = SensorData(
                     sensor_type=entry.get("sensor_type", "Unknown"),
@@ -160,16 +163,21 @@ def send_data():
                     workshop=workshop,
                     incubator=incubator,
                     camera=camera,
-                    timestamp=datetime.now(LOCAL_TIMEZONE)  # Локальний час
+                    timestamp=datetime.now(LOCAL_TIMEZONE)  # Локальний час для збереження
                 )
                 db.session.add(new_data)
 
-        # Зберігаємо дані у файл
+        # Зберігаємо останні дані у файл
         save_latest_data(latest_data)
 
+        # Зберігаємо зміни в базі даних
         db.session.commit()
+
+        # Відповідь на запит
         return jsonify({"message": "Data received successfully"}), 200
+
     except Exception as e:
+        # Обробка помилок
         return jsonify({"error": str(e)}), 500
 
 
