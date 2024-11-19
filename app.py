@@ -32,6 +32,16 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+class SensorData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sensor_type = db.Column(db.String(50))
+    temperature = db.Column(db.Float)
+    humidity = db.Column(db.Float)
+    workshop = db.Column(db.Integer)
+    incubator = db.Column(db.Integer)
+    camera = db.Column(db.Integer)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(LOCAL_TIMEZONE))
 # Налаштування локального часу
 LOCAL_TIMEZONE = pytz.timezone("Europe/Kyiv")  # Встановіть ваш часовий пояс
 # Файл для збереження останніх даних
@@ -61,15 +71,7 @@ def save_latest_data_on_exit():
     save_latest_data(latest_data)
 
 # Модель бази даних
-class SensorData(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sensor_type = db.Column(db.String(50))
-    temperature = db.Column(db.Float)
-    humidity = db.Column(db.Float)
-    workshop = db.Column(db.Integer)
-    incubator = db.Column(db.Integer)
-    camera = db.Column(db.Integer)
-    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(LOCAL_TIMEZONE))
+
 
 # Маршрути
 @app.route('/')
