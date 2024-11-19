@@ -32,7 +32,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
+db.create_all()  # Створення таблиць у базі даних
 class SensorData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sensor_type = db.Column(db.String(50))
