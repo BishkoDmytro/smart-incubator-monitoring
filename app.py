@@ -18,10 +18,8 @@ from datetime import datetime
 app = Flask(__name__)
 
 # Конфігурація
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-    'DATABASE_URL',
-    'postgresql://bishko:Yvo4uLkTb6VAAej88Y1BxRgTypYKw0UF@dpg-csua2ut2ng1s73cf7q4g-a/data_mkwp'
-)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://bishko:Yvo4uLkTb6VAAej88Y1BxRgTypYKw0UF@dpg-csua2ut2ng1s73cf7q4g-a/data_mkwp'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
@@ -32,7 +30,10 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-db.create_all()  # Створення таблиць у базі даних
+# Налаштування локального часу
+LOCAL_TIMEZONE = pytz.timezone("Europe/Kyiv")  # Встановіть ваш часовий пояс
+# Файл для збереження останніх даних
+LATEST_DATA_FILE = "latest_data.json"
 class SensorData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sensor_type = db.Column(db.String(50))
@@ -42,10 +43,7 @@ class SensorData(db.Model):
     incubator = db.Column(db.Integer)
     camera = db.Column(db.Integer)
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(LOCAL_TIMEZONE))
-# Налаштування локального часу
-LOCAL_TIMEZONE = pytz.timezone("Europe/Kyiv")  # Встановіть ваш часовий пояс
-# Файл для збереження останніх даних
-LATEST_DATA_FILE = "latest_data.json"
+
 
 def load_latest_data():
     """Завантажити останні дані з файлу."""
@@ -311,4 +309,6 @@ admin.add_view(MyAdminView(name='Керування даними', endpoint='adm
 
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()  # Створення таблиць у базі даних
     app.run(debug=True, host='0.0.0.0')
