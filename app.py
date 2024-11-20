@@ -12,6 +12,7 @@ import os
 from collections import defaultdict
 import json
 import atexit, pytz
+from zoneinfo import ZoneInfo
 
 
 from datetime import datetime
@@ -19,7 +20,6 @@ app = Flask(__name__)
 
 # Конфігурація
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://bishko:Yvo4uLkTb6VAAej88Y1BxRgTypYKw0UF@dpg-csua2ut2ng1s73cf7q4g-a/data_mkwp'
-
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
@@ -30,10 +30,12 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
 # Налаштування локального часу
-LOCAL_TIMEZONE = pytz.timezone("Europe/Kyiv")  # Встановіть ваш часовий пояс
+LOCAL_TIMEZONE = ZoneInfo("Europe/Kyiv")  # Встановіть ваш часовий пояс
 # Файл для збереження останніх даних
 LATEST_DATA_FILE = "latest_data.json"
+
 class SensorData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sensor_type = db.Column(db.String(50))
@@ -42,7 +44,7 @@ class SensorData(db.Model):
     workshop = db.Column(db.Integer)
     incubator = db.Column(db.Integer)
     camera = db.Column(db.Integer)
-    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(LOCAL_TIMEZONE).astimezone(pytz.utc))  # Зберігаємо в UTC
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(ZoneInfo("UTC")))  # Зберігаємо в UTC
 
 
 def load_latest_data():
@@ -148,7 +150,7 @@ def send_data():
             latest_data[key] = {
                 "temperature": temperature,
                 "humidity": humidity,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(ZoneInfo("UTC")).isoformat()
             }
 
             # Зберігаємо в БД, якщо потрібно
@@ -160,7 +162,7 @@ def send_data():
                     workshop=workshop,
                     incubator=incubator,
                     camera=camera,
-                    timestamp=datetime.now(LOCAL_TIMEZONE).astimezone(pytz.utc)  # Локальний час, перетворений в UTC
+                    timestamp=datetime.now(LOCAL_TIMEZONE).astimezone(ZoneInfo("UTC"))  # Локальний час, перетворений в UTC
                 )
                 db.session.add(new_data)
 
@@ -171,7 +173,6 @@ def send_data():
         return jsonify({"message": "Data received successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 
 # Форма для діапазону дат
