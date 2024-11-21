@@ -9,6 +9,9 @@ from wtforms.validators import DataRequired
 from fpdf import FPDF
 from datetime import datetime
 import os
+import requests
+import threading
+import time
 from collections import defaultdict
 import json
 import atexit, pytz
@@ -17,7 +20,7 @@ from zoneinfo import ZoneInfo
 
 from datetime import datetime
 app = Flask(__name__)
-
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-default-secret-key')
 # Конфігурація
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://bishko:Yvo4uLkTb6VAAej88Y1BxRgTypYKw0UF@dpg-csua2ut2ng1s73cf7q4g-a/data_mkwp'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -307,7 +310,22 @@ admin = Admin(app, name='Admin Panel', template_mode='bootstrap3')
 
 # Here we explicitly set the name and route for the admin view
 admin.add_view(MyAdminView(name='Керування даними', endpoint='admin_data'))
+# Маршрут для пінгу
+@app.route('/ping', methods=['GET'])
+def ping():
+    return "Server is awake", 200
 
+# Функція для пробудження сервера
+def keep_server_awake():
+    while True:
+        time.sleep(840)  # 14 хвилин у секундах
+        try:
+            requests.get("https://your-server-url.com/ping")  # Замініть на вашу адресу
+        except Exception as e:
+            print(f"Error keeping server awake: {e}")
+
+# Запуск фонової функції
+threading.Thread(target=keep_server_awake, daemon=True).start()
 
 
 if __name__ == '__main__':
