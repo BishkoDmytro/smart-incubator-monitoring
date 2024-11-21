@@ -320,7 +320,7 @@ def keep_server_awake():
     while True:
         time.sleep(840)  # 14 хвилин у секундах
         try:
-            requests.get("https://your-server-url.com/ping")  # Замініть на вашу адресу
+            requests.get("https://incubator-w0ut.onrender.com/ping")  # Замініть на вашу адресу
         except Exception as e:
             print(f"Error keeping server awake: {e}")
 
