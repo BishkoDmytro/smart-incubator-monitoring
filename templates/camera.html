@@ -63,10 +63,16 @@
         .btn-secondary:hover {
             background-color: #565e64;
         }
-        .flatpickr-day.today {
-    background: none !important; /* Прибираємо фон */
-    color: inherit !important; /* Зберігаємо стандартний колір */
+  .flatpickr-day.today {
+    background: none !important; /* Прибираємо фон для сьогоднішньої дати */
+    color: inherit !important; /* Відновлюємо стандартний колір */
     border: none !important; /* Прибираємо рамку */
+}
+
+.flatpickr-day.selected {
+    background: #007bff !important; /* Виділення вибраної дати */
+    color: white !important; /* Колір тексту для вибраної дати */
+    border-radius: 50%; /* Округлення виділення */
 }
 
 
