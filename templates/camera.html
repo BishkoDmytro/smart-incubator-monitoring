@@ -63,6 +63,12 @@
         .btn-secondary:hover {
             background-color: #565e64;
         }
+        .flatpickr-day.today {
+    background: none !important; /* Прибираємо фон */
+    color: inherit !important; /* Зберігаємо стандартний колір */
+    border: none !important; /* Прибираємо рамку */
+}
+
 
         @media (max-width: 600px) {
             .calendar-container {
@@ -113,7 +119,6 @@
     flatpickr("#calendar", {
         inline: true,
         dateFormat: "Y-m-d",
-        defaultDate: "today",
         locale: "uk",
         onChange: function(selectedDates, dateStr) {
             selectedDate = dateStr; // Зберігаємо обрану дату
@@ -133,4 +138,3 @@
 {% endblock %}
 </body>
 </html>
-
