@@ -91,7 +91,6 @@ def workshop(workshop_id):
 def incubator(workshop_id, incubator_id):
     return render_template('incubator.html', workshop_id=workshop_id, incubator_id=incubator_id)
 
-
 @app.route('/camera/<int:workshop_id>/<int:incubator_id>/<int:camera_id>')
 def camera(workshop_id, incubator_id, camera_id):
     key = f"{workshop_id}_{incubator_id}_{camera_id}"
@@ -108,30 +107,74 @@ def camera(workshop_id, incubator_id, camera_id):
     else:
         return render_template('error.html', message="No sensor data available for this camera.")
 
+from datetime import datetime, timedelta
+from pytz import timezone
+
 @app.route('/camera/<int:workshop>/<int:incubator>/<int:camera>/data', methods=['GET', 'POST'])
 def get_camera_data(workshop, incubator, camera):
     try:
+        selected_date = None
+        data = []
+
+        # Обробка дати для POST або GET-запиту
         if request.method == 'POST':
             selected_date = request.form.get('date')
-            if not selected_date:
-                return jsonify({"error": "No date provided"}), 400
+        elif request.method == 'GET':
+            selected_date = request.args.get('date')
 
-            data = SensorData.query.filter_by(
-                workshop=workshop, incubator=incubator, camera=camera
-            ).filter(
-                db.func.date(SensorData.timestamp) == selected_date
+        # Якщо вибрана дата передана
+        if selected_date:
+            # Конвертуємо обрану дату у формат datetime із часовою зоною Kyiv
+            try:
+                # Парсимо дату з формату YYYY-MM-DD
+                start_date = datetime.strptime(selected_date, '%Y-%m-%d')
+                start_date = timezone("Europe/Kyiv").localize(start_date)  # Локалізуємо для часового поясу Kyiv
+                end_date = start_date + timedelta(days=1)  # Наступний день для фільтрації
+
+            except ValueError:
+                # Якщо формат дати неправильний, відображаємо помилку
+                return render_template(
+                    'error.html',
+                    message="Invalid date format. Please use YYYY-MM-DD."
+                )
+
+            # Фільтрація даних за обраною датою
+            data = SensorData.query.filter(
+                SensorData.workshop == workshop,
+                SensorData.incubator == incubator,
+                SensorData.camera == camera,
+                SensorData.timestamp >= start_date,
+                SensorData.timestamp < end_date
             ).all()
+
+        # Якщо дата не вибрана, повертаємо всі дані (опціонально)
         else:
-            data = SensorData.query.filter_by(workshop=workshop, incubator=incubator, camera=camera).all()
+            data = SensorData.query.filter_by(
+                workshop=workshop,
+                incubator=incubator,
+                camera=camera
+            ).all()
 
         # Перетворюємо час в Europe/Kyiv
         kyiv_tz = timezone("Europe/Kyiv")
         for record in data:
             record.timestamp = record.timestamp.astimezone(kyiv_tz)
 
-        return render_template('camera_data.html', data=data)
+        return render_template(
+            'camera_data.html',
+            data=data,
+            workshop=workshop,
+            incubator=incubator,
+            camera=camera,
+            selected_date=selected_date
+        )
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return render_template(
+            'error.html',
+            message=f"An error occurred: {str(e)}"
+        )
+
 @app.route('/send_data', methods=['POST'])
 def send_data():
     try:

@@ -14,7 +14,7 @@
 
     {% block content %}
     <div class="container mt-4">
-        <h1 class="text-center">Дані камери</h1>
+         <h1 class="text-center">Дані камери для {{ selected_date }}</h1>
         {% if data %}
             <div class="table-responsive">
                 <table class="table table-striped table-bordered">
@@ -31,6 +31,7 @@
                         <tr>
                             <td>{{ record.temperature }}</td>
                             <td>{{ record.humidity }}</td>
+                            <!-- Відображаємо тільки час -->
                             <td>{{ record.timestamp.strftime('%H:%M:%S') }}</td>
                             <td>{{ record.sensor_type }}</td>
                         </tr>
