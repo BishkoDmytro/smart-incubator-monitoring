@@ -4,6 +4,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Camera {{ camera_id }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .container {
+            padding: 10px;
+        }
+
+        .calendar-container {
+            margin: 20px auto;
+            max-width: 400px; /* Обмеження ширини для великих екранів */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flatpickr-calendar {
+            width: 100%; /* Календар заповнює контейнер */
+            max-width: 100%; /* Гарантія, що не вийде за межі */
+        }
+
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #565e64;
+        }
+
+        @media (max-width: 600px) {
+            .calendar-container {
+                margin: 10px;
+                padding: 5px;
+            }
+
+            .btn {
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+        }
+    </style>
 </head>
 <body>
   {% extends "base.html" %}
@@ -11,19 +84,47 @@
 {% block title %}Камера {{ camera_id }}{% endblock %}
 
 {% block content %}
-<h1>Камера {{ camera_id }}</h1>
-<p>Поточна температура: {{ temperature }}°C</p>
-<p>Поточна вологість: {{ humidity }}%</p>
+<div class="container">
+    <h1>Камера {{ camera_id }}</h1>
+    <p>Поточна температура: {{ temperature }}°C</p>
+    <p>Поточна вологість: {{ humidity }}%</p>
 
-<h2>Виберіть дату</h2>
-<form action="/camera/{{ workshop_id }}/{{ incubator_id }}/{{ camera_id }}/data" method="post">
-    <div class="mb-3">
-        <label for="date" class="form-label">Дата (YYYY-MM-DD):</label>
-        <input type="date" id="date" name="date" class="form-control" required>
+    <div class="calendar-container">
+        <h2>Оберіть дату</h2>
+        <div id="calendar"></div> <!-- Контейнер для календаря -->
     </div>
-    <button type="submit" class="btn btn-primary">Підтвердити</button>
-</form>
-<a href="/incubator/{{ workshop_id }}/{{ incubator_id }}" class="btn btn-secondary mt-3">Назад до інкубатора</a>
+
+    <div class="btn-container">
+        <button id="confirmBtn" class="btn btn-primary">Підтвердити</button>
+        <a href="/incubator/{{ workshop_id }}/{{ incubator_id }}" class="btn btn-secondary">Назад до інкубатора</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    // Ініціалізація календаря
+    let selectedDate = null;
+    flatpickr("#calendar", {
+        inline: true,
+        dateFormat: "Y-m-d",
+        defaultDate: "today",
+        locale: "uk",
+        onChange: function(selectedDates, dateStr) {
+            selectedDate = dateStr; // Зберігаємо обрану дату
+        }
+    });
+
+    // Обробка натискання кнопки "Підтвердити"
+    document.getElementById("confirmBtn").addEventListener("click", () => {
+        if (selectedDate) {
+            const url = `/camera/{{ workshop_id }}/{{ incubator_id }}/{{ camera_id }}/data?date=${selectedDate}`;
+            window.location.href = url; // Переадресація на URL
+        } else {
+            alert("Будь ласка, виберіть дату!");
+        }
+    });
+</script>
 {% endblock %}
 </body>
 </html>
+
