@@ -91,6 +91,7 @@ def workshop(workshop_id):
 def incubator(workshop_id, incubator_id):
     return render_template('incubator.html', workshop_id=workshop_id, incubator_id=incubator_id)
 
+
 @app.route('/camera/<int:workshop_id>/<int:incubator_id>/<int:camera_id>')
 def camera(workshop_id, incubator_id, camera_id):
     key = f"{workshop_id}_{incubator_id}_{camera_id}"
@@ -131,7 +132,6 @@ def get_camera_data(workshop, incubator, camera):
         return render_template('camera_data.html', data=data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 @app.route('/send_data', methods=['POST'])
 def send_data():
     try:
