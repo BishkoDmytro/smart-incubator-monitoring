@@ -15,6 +15,7 @@ import time
 from collections import defaultdict
 import json
 import atexit, pytz
+from pytz import timezone
 from zoneinfo import ZoneInfo
 
 
@@ -35,7 +36,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 # Налаштування локального часу
-LOCAL_TIMEZONE = ZoneInfo("Europe/Kyiv")  # Встановіть ваш часовий пояс
+LOCAL_TIMEZONE = pytz.timezone("Europe/Kyiv")  # Встановіть ваш часовий пояс
 # Файл для збереження останніх даних
 LATEST_DATA_FILE = "latest_data.json"
 
@@ -47,7 +48,7 @@ class SensorData(db.Model):
     workshop = db.Column(db.Integer)
     incubator = db.Column(db.Integer)
     camera = db.Column(db.Integer)
-    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(ZoneInfo("UTC")))  # Зберігаємо в UTC
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(pytz.utc))  # Зберігаємо в UTC
 
 
 def load_latest_data():
@@ -73,10 +74,6 @@ latest_data = load_latest_data()
 def save_latest_data_on_exit():
     save_latest_data(latest_data)
 
-# Модель бази даних
-
-
-# Маршрути
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -126,6 +123,11 @@ def get_camera_data(workshop, incubator, camera):
         else:
             data = SensorData.query.filter_by(workshop=workshop, incubator=incubator, camera=camera).all()
 
+        # Перетворюємо час в Europe/Kyiv
+        kyiv_tz = timezone("Europe/Kyiv")
+        for record in data:
+            record.timestamp = record.timestamp.astimezone(kyiv_tz)
+
         return render_template('camera_data.html', data=data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -153,7 +155,7 @@ def send_data():
             latest_data[key] = {
                 "temperature": temperature,
                 "humidity": humidity,
-                "timestamp": datetime.now(ZoneInfo("UTC")).isoformat()
+                "timestamp": datetime.now(pytz.utc).isoformat()
             }
 
             # Зберігаємо в БД, якщо потрібно
@@ -165,7 +167,7 @@ def send_data():
                     workshop=workshop,
                     incubator=incubator,
                     camera=camera,
-                    timestamp=datetime.now(LOCAL_TIMEZONE).astimezone(ZoneInfo("UTC"))  # Локальний час, перетворений в UTC
+                    timestamp=datetime.now(LOCAL_TIMEZONE).astimezone(pytz.utc)  # Локальний час, перетворений в UTC
                 )
                 db.session.add(new_data)
 
@@ -176,6 +178,21 @@ def send_data():
         return jsonify({"message": "Data received successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/ping', methods=['GET'])
+def ping():
+    return "Server is awake", 200
+
+def keep_server_awake():
+    while True:
+        time.sleep(840)  # 14 хвилин у секундах
+        try:
+            requests.get("https://incubator-w0ut.onrender.com/ping")  # Замініть на вашу адресу
+        except Exception as e:
+            print(f"Error keeping server awake: {e}")
+
+# Запуск фонової функції
+threading.Thread(target=keep_server_awake, daemon=True).start()
 
 
 # Форма для діапазону дат
@@ -310,22 +327,8 @@ admin = Admin(app, name='Admin Panel', template_mode='bootstrap3')
 
 # Here we explicitly set the name and route for the admin view
 admin.add_view(MyAdminView(name='Керування даними', endpoint='admin_data'))
-# Маршрут для пінгу
-@app.route('/ping', methods=['GET'])
-def ping():
-    return "Server is awake", 200
 
-# Функція для пробудження сервера
-def keep_server_awake():
-    while True:
-        time.sleep(840)  # 14 хвилин у секундах
-        try:
-            requests.get("https://incubator-w0ut.onrender.com/ping")  # Замініть на вашу адресу
-        except Exception as e:
-            print(f"Error keeping server awake: {e}")
 
-# Запуск фонової функції
-threading.Thread(target=keep_server_awake, daemon=True).start()
 
 
 if __name__ == '__main__':
