@@ -18,7 +18,7 @@
         }
 
         .calendar-container {
-            margin: 20px auto;
+
             max-width: 400px; /* Обмеження ширини для великих екранів */
             display: flex;
             flex-direction: column;
@@ -32,8 +32,7 @@
         }
 
         .btn-container {
-            display: flex;
-            flex-direction: column;
+
             gap: 10px;
             margin-top: 20px;
         }
@@ -67,9 +66,16 @@
 
         @media (max-width: 600px) {
             .calendar-container {
+                margin: 20px auto;
                 margin: 10px;
                 padding: 5px;
             }
+            .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
 
             .btn {
                 font-size: 14px;
