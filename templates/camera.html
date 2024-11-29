@@ -119,27 +119,25 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/uk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/uk.js"></script>
 <script>
-    // Ініціалізація календаря
-    let selectedDate = null;
+    // Ініціалізація календаря з локалізацією
+    let selectedDate = flatpickr.formatDate(new Date(), "Y-m-d"); // Сьогоднішня дата за замовчуванням
+
     flatpickr("#calendar", {
         inline: true,
         dateFormat: "Y-m-d",
-        locale: "uk",
+        locale: "uk", // Локалізація українською мовою
+        defaultDate: "today", // Підсвічення сьогоднішньої дати
         onChange: function(selectedDates, dateStr) {
-            selectedDate = dateStr; // Зберігаємо обрану дату
+            selectedDate = dateStr; // Оновлюємо дату, якщо користувач вибирає іншу
         }
     });
 
     // Обробка натискання кнопки "Підтвердити"
     document.getElementById("confirmBtn").addEventListener("click", () => {
-        if (selectedDate) {
-            const url = `/camera/{{ workshop_id }}/{{ incubator_id }}/{{ camera_id }}/data?date=${selectedDate}`;
-            window.location.href = url; // Переадресація на URL
-        } else {
-            alert("Будь ласка, виберіть дату!");
-        }
+        const url = `/camera/{{ workshop_id }}/{{ incubator_id }}/{{ camera_id }}/data?date=${selectedDate}`;
+        window.location.href = url; // Переадресація на URL
     });
 </script>
 {% endblock %}
