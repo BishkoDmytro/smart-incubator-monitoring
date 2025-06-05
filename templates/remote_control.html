@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Віддалене керування температурою{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">Віддалене керування температурою</h2>
+
+  <!-- Форма для введення команди -->
+  <form id="commandForm" class="mb-3">
+    <div class="form-group">
+      <label for="command">Задати температуру (°C):</label>
+      <input type="number" step="0.1" id="command" name="command" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Надіслати</button>
+  </form>
+
+  <!-- Кнопка для явного опитування стану -->
+  <button id="getDataBtn" class="btn btn-secondary mb-3">Отримати дані</button>
+
+  <div id="response" class="alert alert-info d-none"></div>
+  <div id="deviceStatus" class="alert alert-secondary d-none"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Надсилання команди через форму
+  document.getElementById("commandForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const commandValue = document.getElementById("command").value;
+    const responseDiv = document.getElementById("response");
+
+    try {
+      const response = await fetch("/remote-control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command: parseFloat(commandValue) })
+      });
+      const data = await response.json();
+      responseDiv.classList.remove("d-none", "alert-danger");
+      responseDiv.classList.add("alert-info");
+      responseDiv.innerHTML = `<strong>Відповідь сервера:</strong> ${data.message}`;
+    } catch (error) {
+      responseDiv.classList.remove("d-none", "alert-info");
+      responseDiv.classList.add("alert-danger");
+      responseDiv.innerText = "Помилка: " + error.message;
+    }
+  });
+
+  // Функція опитування для отримання актуального стану з сервера
+  async function pollState() {
+    try {
+      const response = await fetch("/get_state");
+      const state = await response.json();
+      document.getElementById("deviceStatus").classList.remove("d-none");
+      document.getElementById("deviceStatus").innerHTML =
+        `<strong>Стан системи:</strong> Temperature: ${state.temperature ? state.temperature + "°C" : "N/A"}, ` +
+        `Heater: ${state.heater}, Fan: ${state.fan}`;
+    } catch (error) {
+      console.error("Помилка отримання стану:", error);
+    }
+  }
+
+  // Опитування стану кожні 3 секунди
+ // setInterval(pollState, 3000);
+//  pollState();
+
+  // Обробка події кліку кнопки "Отримати дані"
+  document.getElementById("getDataBtn").addEventListener("click", () => {
+    pollState();
+  });
+</script>
+{% endblock %}

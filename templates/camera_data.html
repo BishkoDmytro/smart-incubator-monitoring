@@ -1,60 +1,195 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Data</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    {% extends "base.html" %}
+<style>
+@media (max-width: 768px) {
+  #desktopChart { display: none; }
+  #mobileChart {
+    display: block;
+    height: 250px !important;
+  }
+}
+@media (min-width: 769px) {
+  #mobileChart { display: none; }
+  #desktopChart {
+    display: block;
+    height: 400px;
+  }
+}
+</style>
 
-    {% block title %}Дані камери{% endblock %}
 
-    {% block content %}
-    <div class="container mt-4">
-         <h1 class="text-center">Дані камери для {{ selected_date }}</h1>
-        {% if data %}
-            <div class="table-responsive">
-                <table class="table table-striped table-bordered">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Температура</th>
-                            <th>Вологість</th>
-                            <th>Час</th>
-                            <th>Тип сенсора</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record in data %}
-                        <tr>
-                            <td>{{ record.temperature }}</td>
-                            <td>{{ record.humidity }}</td>
-                            <!-- Відображаємо тільки час -->
-                            <td>{{ record.timestamp.strftime('%H:%M:%S') }}</td>
-                            <td>{{ record.sensor_type }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="d-flex justify-content-center mt-3">
-                <a href="/camera/{{ data[0].workshop }}/{{ data[0].incubator }}/{{ data[0].camera }}" class="btn btn-secondary">Назад до камери</a>
-            </div>
-        {% else %}
-            <div class="alert alert-warning text-center">
-                Дані відсутні для обраної камери.
-            </div>
-            <div class="d-flex justify-content-center mt-3">
-                <a href="/" class="btn btn-secondary">На головну</a>
-            </div>
-        {% endif %}
-    </div>
-    {% endblock %}
+{% extends "base.html" %}
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% block title %}Дані камери{% endblock %}
 
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center">Дані камери для {{ selected_date }}</h1>
+
+    {% if data %}
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Температура</th>
+                        <th>Вологість</th>
+                        <th>Час</th>
+                        <th>Тип сенсора</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in data %}
+                    <tr>
+                        <td>{{ record.temperature }}</td>
+                        <td>{{ record.humidity }}</td>
+                        <td>{{ record.timestamp.strftime('%H:%M:%S') }}</td>
+                        <td>{{ record.sensor_type }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="d-flex justify-content-center mt-3">
+            <a href="/camera/{{ data[0].workshop }}/{{ data[0].incubator }}/{{ data[0].camera }}" class="btn btn-secondary">Назад до камери</a>
+        </div>
+
+        <div class="my-5">
+            <h3 class="text-center">Графік температури та вологості</h3>
+<!-- Десктопна версія -->
+<canvas id="desktopChart" style="width: 100%; height: 400px;"></canvas>
+
+<!-- Мобільна версія -->
+<canvas id="mobileChart" style="width: 100%; height: 250px;"></canvas>
+
+</div>
+        </div>
+    {% else %}
+        <div class="alert alert-warning text-center">
+            Дані відсутні для обраної камери.
+        </div>
+        <div class="d-flex justify-content-center mt-3">
+            <a href="/" class="btn btn-secondary">На головну</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function resizeCanvasForHiDPI(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return ctx;
+}
+
+const labels = {{ labels|tojson }};
+const temperatureData = {{ temperature_data|tojson }};
+const humidityData = {{ humidity_data|tojson }};
+
+const isMobile = window.innerWidth <= 768;
+
+// Десктопна версія (line)
+if (!isMobile) {
+  const desktopCanvas = document.getElementById('desktopChart');
+  if (desktopCanvas) {
+    const ctxDesktop = resizeCanvasForHiDPI(desktopCanvas);
+    new Chart(ctxDesktop, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Температура (°C)',
+            data: temperatureData,
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            fill: false,
+            tension: 0.3
+          },
+          {
+            label: 'Вологість (%)',
+            data: humidityData,
+            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            fill: false,
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true },
+          title: {
+            display: true,
+            text: 'Температура та вологість'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+}
+
+// Мобільна версія (bar)
+else {
+  const mobileCanvas = document.getElementById('mobileChart');
+  if (mobileCanvas) {
+    const ctxMobile = mobileCanvas.getContext('2d');
+    new Chart(ctxMobile, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Температура (°C)',
+            data: temperatureData,
+            backgroundColor: 'rgba(255, 99, 132, 0.6)'
+          },
+          {
+            label: 'Вологість (%)',
+            data: humidityData,
+            backgroundColor: 'rgba(54, 162, 235, 0.6)'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true },
+          title: {
+            display: true,
+            text: 'Температура та вологість (мобільна версія)'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          },
+          x: {
+            ticks: {
+              maxRotation: 90,
+              minRotation: 45
+            }
+          }
+        }
+      }
+    });
+  }
+}
+</script>
+
+
+
+
+{% endblock %}

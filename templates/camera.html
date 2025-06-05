@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Camera {{ camera_id }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <style>
+       <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -74,9 +74,30 @@
     color: white !important; /* Колір тексту для вибраної дати */
     border-radius: 50%; /* Округлення виділення */
 }
+    .formula-container {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+        text-align: center;
+    }
+
+    .warning {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .formula {
+        font-size: 1.2em;
+        font-weight: bold;
+        background: #e9ecef;
+        padding: 5px;
+        display: inline-block;
+        border-radius: 5px;
+    }
 
 
-        @media (max-width: 600px) {
+        @media (max-width:  768px) {
             .calendar-container {
                 margin: 20px auto;
                 margin: 10px;
@@ -94,6 +115,23 @@
                 padding: 8px 12px;
             }
         }
+        .container {
+            padding: 10px;
+        }
+
+        .formula-container {
+            padding: 10px;
+        }
+
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-container .btn {
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -106,20 +144,40 @@
     <h1>Камера {{ camera_id }}</h1>
     <p>Поточна температура: {{ temperature }}°C</p>
     <p>Поточна вологість: {{ humidity }}%</p>
+    <p>Температура вологого термометра: {{ wet_bulb_temp }}°C</p>
 
     <div class="calendar-container">
         <h2>Оберіть дату</h2>
-        <div id="calendar"></div> <!-- Контейнер для календаря -->
+        <div id="calendar"></div>
     </div>
 
     <div class="btn-container">
         <button id="confirmBtn" class="btn btn-primary">Підтвердити</button>
         <a href="/incubator/{{ workshop_id }}/{{ incubator_id }}" class="btn btn-secondary">Назад до інкубатора</a>
     </div>
+
+    <div class="formula-container">
+        <h2 class="warning">Увага: дані можуть мати похибку!</h2>
+        <h3>Розрахунок температури вологого термометра</h3>
+        <p><strong>Формула:</strong></p>
+        <p class="formula">T<sub>в</sub> = T - (100 - ВВ%) / 5</p>
+        <p><strong>Де:</strong></p>
+        <ul>
+            <li><strong>T<sub>в</sub></strong> — температура вологого термометра (°C)</li>
+            <li><strong>T</strong> — поточна температура (°C)</li>
+            <li><strong>ВВ</strong> — відносна вологість (%)</li>
+        </ul>
+    </div>
+    <div style="max-width: 700px; margin: 40px auto;">
+    <canvas id="tempHumidityChart"></canvas>
 </div>
+
+</div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/uk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // Ініціалізація календаря з локалізацією
     let selectedDate = flatpickr.formatDate(new Date(), "Y-m-d"); // Сьогоднішня дата за замовчуванням
@@ -140,6 +198,52 @@
         window.location.href = url; // Переадресація на URL
     });
 </script>
+<script>
+    const labels = {{ labels | tojson }};
+    const temperatureData = {{ temperature_data | tojson }};
+    const humidityData = {{ humidity_data | tojson }};
+
+    const ctx = document.getElementById('tempHumidityChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Температура (°C)',
+                    data: temperatureData,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Вологість (%)',
+                    data: humidityData,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Температура та вологість за останні 24 години'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false
+                }
+            }
+        }
+    });
+</script>
+
 {% endblock %}
 </body>
 </html>

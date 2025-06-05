@@ -31,6 +31,8 @@
         <button type="submit" name="export" class="btn btn-primary">Експортувати в PDF</button>
     </div>
 </form>
+
+
 {% if error %}
     <div class="alert alert-danger mt-4">{{ error }}</div>
 {% endif %}
@@ -38,6 +40,5 @@
     <div class="alert alert-success mt-4">{{ success|safe }}</div>
 {% endif %}
 {% endblock %}
-
 </body>
 </html>

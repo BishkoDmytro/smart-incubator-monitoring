@@ -23,7 +23,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-default-secret-key')
 # Конфігурація
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://bishko:Yvo4uLkTb6VAAej88Y1BxRgTypYKw0UF@dpg-csua2ut2ng1s73cf7q4g-a/data_mkwp'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
@@ -34,6 +34,11 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+# Налаштування локального часу
+LOCAL_TIMEZONE = pytz.timezone("Europe/Kyiv")  # Встановіть ваш часовий пояс
+# Файл для збереження останніх даних
+LATEST_DATA_FILE = "latest_data.json"
 
 # Налаштування локального часу
 LOCAL_TIMEZONE = pytz.timezone("Europe/Kyiv")  # Встановіть ваш часовий пояс
@@ -90,23 +95,54 @@ def workshop(workshop_id):
 @app.route('/incubator/<int:workshop_id>/<int:incubator_id>')
 def incubator(workshop_id, incubator_id):
     return render_template('incubator.html', workshop_id=workshop_id, incubator_id=incubator_id)
+def calculate_wet_bulb_temperature(t, rh):
+    """Обчислення температури вологого термометра."""
+    return t - ((100 - rh) / 5)
+
 
 @app.route('/camera/<int:workshop_id>/<int:incubator_id>/<int:camera_id>')
 def camera(workshop_id, incubator_id, camera_id):
     key = f"{workshop_id}_{incubator_id}_{camera_id}"
+
+    # Отримання останніх показників
     if key in latest_data:
         temp_data = latest_data[key]
-        return render_template(
-            'camera.html',
-            workshop_id=workshop_id,
-            incubator_id=incubator_id,
-            camera_id=camera_id,
-            temperature=temp_data['temperature'],
-            humidity=temp_data['humidity']
-        )
+        temperature = temp_data['temperature']
+        humidity = temp_data['humidity']
+        wet_bulb_temp = calculate_wet_bulb_temperature(temperature, humidity)
     else:
         return render_template('error.html', message="No sensor data available for this camera.")
 
+    # Часовий діапазон — останні 24 години
+    now = datetime.now(pytz.utc)
+    day_ago = now - timedelta(hours=24)
+
+    # Отримуємо останні записи цього сенсора за останню добу
+    records = (
+        SensorData.query
+        .filter_by(workshop=workshop_id, incubator=incubator_id, camera=camera_id)
+        .filter(SensorData.timestamp >= day_ago)
+        .order_by(SensorData.timestamp.asc())
+        .all()
+    )
+
+    # Формуємо масиви для графіка
+    labels = [r.timestamp.astimezone(pytz.timezone('Europe/Kyiv')).strftime('%H:%M') for r in records]
+    temperature_data = [r.temperature for r in records]
+    humidity_data = [r.humidity for r in records]
+
+    return render_template(
+        'camera.html',
+        workshop_id=workshop_id,
+        incubator_id=incubator_id,
+        camera_id=camera_id,
+        temperature=temperature,
+        humidity=humidity,
+        wet_bulb_temp=round(wet_bulb_temp, 2),
+        labels=labels,
+        temperature_data=temperature_data,
+        humidity_data=humidity_data
+    )
 from datetime import datetime, timedelta
 from pytz import timezone
 
@@ -160,20 +196,105 @@ def get_camera_data(workshop, incubator, camera):
         for record in data:
             record.timestamp = record.timestamp.astimezone(kyiv_tz)
 
+        labels = [r.timestamp.strftime('%H:%M') for r in data]
+        temperature_data = [r.temperature for r in data]
+        humidity_data = [r.humidity for r in data]
+
+
+
         return render_template(
-            'camera_data.html',
-            data=data,
-            workshop=workshop,
-            incubator=incubator,
-            camera=camera,
-            selected_date=selected_date
-        )
+          'camera_data.html',
+           data=data,
+           workshop=workshop,
+           incubator=incubator,
+           camera=camera,
+           selected_date=selected_date,
+           labels=labels,
+           temperature_data=temperature_data,
+           humidity_data=humidity_data
+    )
 
     except Exception as e:
         return render_template(
             'error.html',
             message=f"An error occurred: {str(e)}"
         )
+
+
+# Глобальна змінна для збереження останнього стану, отриманого від ESP32
+latest_state = {
+    "device_id": "ESP32",
+    "temperature": None,
+    "humidity": None,
+    "heater": "OFF",
+    "fan": "OFF"
+}
+
+# URL, через який надсилаються команди до API Gateway (який відправляє повідомлення в MQTT)
+API_GATEWAY_URL = "https://atvgc2vo5f.execute-api.us-east-1.amazonaws.com/prod/command"
+
+@app.route('/remote-control', methods=['GET', 'POST'])
+def remote_control():
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            if not data or "command" not in data:
+                return jsonify({"error": "Введіть значення температури"}), 400
+
+            command_value = float(data["command"])
+
+            # Надсилання команди до API Gateway (далі ESP32 отримує її через MQTT)
+            response = requests.post(API_GATEWAY_URL, json={"command": command_value})
+            response.raise_for_status()
+
+            # Повертаємо те, що є останнім отриманим станом від ESP32
+            return jsonify({
+                "message": "Дані отримані та опубліковані в MQTT",
+                "heater": latest_state.get("heater", "OFF"),
+                "fan": latest_state.get("fan", "OFF")
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        # Для GET-запиту повертаємо HTML‑інтерфейс
+        return render_template('remote_control.html')
+
+@app.route('/update_state', methods=['POST'])
+def update_state():
+    """
+    Endpoint для отримання актуальних даних від ESP32.
+    ESP32 має надсилати POST-запит з даними, наприклад:
+    {
+      "device_id": "ESP32",
+      "temperature": 19.90,
+      "humidity": 65.70,
+      "heater": "OFF",
+      "fan": "ON"
+    }
+    """
+    global latest_state
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        latest_state.update(data)
+        app.logger.info(f"State updated: {latest_state}")
+        return jsonify({"message": "State updated"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/get_state', methods=['GET'])
+def get_state():
+    """
+    Endpoint для отримання останнього стану, який буде використаний веб‑інтерфейсом.
+    """
+    global latest_state
+    return jsonify(latest_state)
+
+
+
+
+
 
 @app.route('/send_data', methods=['POST'])
 def send_data():
@@ -222,22 +343,6 @@ def send_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/ping', methods=['GET'])
-def ping():
-    return "Server is awake", 200
-
-def keep_server_awake():
-    while True:
-        time.sleep(840)  # 14 хвилин у секундах
-        try:
-            requests.get("https://incubator-w0ut.onrender.com/ping")  # Замініть на вашу адресу
-        except Exception as e:
-            print(f"Error keeping server awake: {e}")
-
-# Запуск фонової функції
-threading.Thread(target=keep_server_awake, daemon=True).start()
-
-
 # Форма для діапазону дат
 class DateRangeForm(FlaskForm):
     start_date = DateField('Початкова дата', validators=[DataRequired()])
@@ -247,7 +352,6 @@ class DateRangeForm(FlaskForm):
 
 
 ADMIN_PASSWORD = '1234'  # замінити на реальний пароль
-
 
 # Додаємо сторінку для введення пароля перед доступом
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -370,6 +474,36 @@ admin = Admin(app, name='Admin Panel', template_mode='bootstrap3')
 
 # Here we explicitly set the name and route for the admin view
 admin.add_view(MyAdminView(name='Керування даними', endpoint='admin_data'))
+
+
+
+
+TEMPERATURE_THRESHOLD = 38.3  # Змінюй за потреби
+@app.route('/alert', methods=['GET'])
+def alert():
+    """
+    Перевіряє кожен інкубатор і повертає список тих, де перевищена температура.
+    """
+    alerts = []
+    try:
+        for key, data in latest_data.items():
+            temperature = data.get("temperature")
+            if temperature and temperature > TEMPERATURE_THRESHOLD:
+                workshop, incubator, camera = key.split('_')
+                alerts.append({
+                    "workshop": int(workshop),
+                    "incubator": int(incubator),
+                    "camera": int(camera),
+                    "temperature": temperature
+                })
+
+        if alerts:
+            return jsonify({"status": "ALERT", "alerts": alerts}), 200
+        else:
+            return jsonify({"status": "OK", "alerts": []}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 
 
